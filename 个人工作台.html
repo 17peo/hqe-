@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的工作台</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --line:#e3e6ea; --text:#1f2329;
+    --muted:#8a9099; --blue:#2f6bff; --blue-soft:#eaf0ff;
+    --red:#e23b3b; --red-soft:#fdecec; --green:#2ea66b; --amber:#e08a00;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px; line-height:1.6;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:20px 16px 80px;}
+  header.top{
+    position:sticky; top:0; background:var(--bg); z-index:5;
+    padding:8px 0 14px; border-bottom:1px solid var(--line); margin-bottom:18px;
+  }
+  .title-row{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  h1{font-size:22px; margin:0;}
+  .tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .search{flex:1; min-width:200px; padding:9px 12px; border:1px solid var(--line);
+    border-radius:8px; font-size:14px; background:#fff; color:var(--text);}
+  button{font-family:inherit; font-size:14px; cursor:pointer; border:none;
+    border-radius:8px; padding:8px 14px; background:var(--blue); color:#fff;}
+  button.ghost{background:#fff; color:var(--text); border:1px solid var(--line);}
+  button.sm{padding:5px 10px; font-size:13px;}
+  button.danger{background:#fff; color:var(--red); border:1px solid var(--red);}
+  section.card{background:var(--card); border:1px solid var(--line);
+    border-radius:12px; padding:16px 16px 18px; margin-bottom:18px;}
+  .sec-head{display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px; gap:10px; flex-wrap:wrap;}
+  .sec-head h2{font-size:17px; margin:0;}
+  .hint{color:var(--muted); font-size:13px; margin:6px 0 12px;}
+  form.add{display:flex; flex-direction:column; gap:8px; margin-bottom:14px;}
+  .row{display:flex; gap:8px; flex-wrap:wrap;}
+  input[type=text], input[type=date], textarea, select{
+    font-family:inherit; font-size:14px; padding:8px 10px; border:1px solid var(--line);
+    border-radius:8px; background:#fff; color:var(--text); width:100%;
+  }
+  textarea{resize:vertical; min-height:60px;}
+  .row > *{flex:1; min-width:120px;}
+  .item{border:1px solid var(--line); border-radius:10px; padding:10px 12px;
+    margin-bottom:10px; background:#fff;}
+  .item .top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
+  .item .body{white-space:pre-wrap; word-break:break-word;}
+  .item.done .body{text-decoration:line-through; color:var(--muted);}
+  .meta{color:var(--muted); font-size:13px; margin-top:6px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;}
+  .badge{display:inline-block; padding:1px 8px; border-radius:20px; font-size:12px;}
+  .badge.high{background:var(--red-soft); color:var(--red);}
+  .badge.normal{background:var(--blue-soft); color:var(--blue);}
+  .badge.over{background:var(--red-soft); color:var(--red); font-weight:600;}
+  .badge.today{background:#fff3e0; color:var(--amber); font-weight:600;}
+  .badge.soon{background:#eef1f4; color:var(--muted);}
+  .tags{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .tag{background:var(--blue-soft); color:var(--blue); border-radius:20px;
+    padding:1px 10px; font-size:12px;}
+  .chips{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
+  .chip{background:#fff; border:1px solid var(--line); border-radius:20px;
+    padding:3px 12px; font-size:13px; cursor:pointer; color:var(--text);}
+  .chip.active{background:var(--blue); color:#fff; border-color:var(--blue);}
+  .sep{color:var(--muted); font-size:13px; border-top:1px dashed var(--line);
+    margin:6px 0; padding-top:8px;}
+  .empty{color:var(--muted); font-size:14px; padding:6px 2px;}
+  .footer-note{color:var(--muted); font-size:13px; text-align:center; margin-top:24px;}
+  label.fld{font-size:13px; color:var(--muted); margin-bottom:2px; display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="title-row">
+      <h1>我的工作台</h1>
+      <div class="tools">
+        <input id="search" class="search" type="text" placeholder="搜索待办 / 灵感 / 笔记…">
+        <button class="ghost" id="btnExport">导出数据</button>
+        <button class="ghost" id="btnImport">导入数据</button>
+        <input id="fileInput" type="file" accept="application/json" style="display:none">
+      </div>
+    </div>
+  </header>
+
+  <!-- 待办 -->
+  <section class="card">
+    <div class="sec-head"><h2>待办事项</h2></div>
+    <div class="hint">今日到期和已逾期的会标红排在前面。可勾选完成、编辑或删除。</div>
+    <form class="add" id="todoForm">
+      <textarea id="todoText" placeholder="要做什么…" rows="2"></textarea>
+      <div class="row">
+        <div><label class="fld">截止日期（可空）</label><input id="todoDue" type="date"></div>
+        <div><label class="fld">重要程度</label>
+          <select id="todoPrio">
+            <option value="normal">普通</option>
+            <option value="high">重要</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="flex:0;">
+        <button type="submit" id="todoSubmit">添加待办</button>
+        <button type="button" class="ghost" id="todoCancel" style="display:none;">取消编辑</button>
+      </div>
+    </form>
+    <div id="todoList"></div>
+  </section>
+
+  <!-- 灵感 -->
+  <section class="card">
+    <div class="sec-head"><h2>灵感</h2></div>
+    <div class="hint">随手记，可写长一点，也可加标签（多个标签用空格或逗号分开）。</div>
+    <div class="chips" id="ideaChips"></div>
+    <form class="add" id="ideaForm">
+      <textarea id="ideaText" placeholder="一个念头…" rows="3"></textarea>
+      <div class="row">
+        <div><label class="fld">标签（可空）</label><input id="ideaTags" type="text" placeholder="工作 生活 点子"></div>
+      </div>
+      <div class="row" style="flex:0;">
+        <button type="submit" id="ideaSubmit">添加灵感</button>
+        <button type="button" class="ghost" id="ideaCancel" style="display:none;">取消编辑</button>
+      </div>
+    </form>
+    <div id="ideaList"></div>
+  </section>
+
+  <!-- 学习笔记 -->
+  <section class="card">
+    <div class="sec-head"><h2>学习笔记</h2></div>
+    <div class="hint">每条有标题，可归类到主题（如 英语 / 编程 / 读书）。</div>
+    <form class="add" id="noteForm">
+      <div class="row">
+        <div><label class="fld">标题</label><input id="noteTitle" type="text" placeholder="笔记标题"></div>
+        <div><label class="fld">主题（可空）</label><input id="noteTopic" type="text" placeholder="英语"></div>
+      </div>
+      <textarea id="noteBody" placeholder="正文内容…" rows="4"></textarea>
+      <div class="row" style="flex:0;">
+        <button type="submit" id="noteSubmit">添加笔记</button>
+        <button type="button" class="ghost" id="noteCancel" style="display:none;">取消编辑</button>
+      </div>
+    </form>
+    <div id="noteList"></div>
+  </section>
+
+  <div class="footer-note">数据只存在这台电脑的浏览器里。换电脑请用「导出数据」拷文件，再用「导入数据」恢复。</div>
+</div>
+
+<script>
+"use strict";
+const STORE_KEY = "workbench_v1";
+let data = { todos:[], ideas:[], notes:[] };
+let editing = { todo:null, idea:null, note:null };
+let ideaFilterTag = null;
+
+function load(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    if(raw){ const p = JSON.parse(raw); if(p && typeof p==="object") data = p; }
+  }catch(e){}
+  data.todos = data.todos || [];
+  data.ideas = data.ideas || [];
+  data.notes = data.notes || [];
+}
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(data)); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function todayStr(){
+  const d = new Date();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return d.getFullYear()+"-"+m+"-"+day;
+}
+function esc(s){ return String(s==null?"":s); }
+
+// 安全的元素构造：一律用 textContent，杜绝注入
+function el(tag, props, children){
+  const e = document.createElement(tag);
+  props = props || {};
+  for(const k in props){
+    const v = props[k];
+    if(k==="text") e.textContent = v;
+    else if(k==="class") e.className = v;
+    else if(k==="value") e.value = v;
+    else if(v!=null) e.setAttribute(k, v);
+  }
+  if(children!=null){
+    (Array.isArray(children)?children:[children]).forEach(c=>{
+      if(c==null) return;
+      e.appendChild(typeof c==="string" ? document.createTextNode(c) : c);
+    });
+  }
+  return e;
+}
+
+function dueStatus(todo){
+  if(todo.done) return "done";
+  if(!todo.due) return "none";
+  const t = todayStr();
+  if(todo.due < t) return "over";
+  if(todo.due === t) return "today";
+  return "soon";
+}
+
+function renderTodos(){
+  const box = document.getElementById("todoList");
+  box.innerHTML = "";
+  const q = currentQuery();
+  let list = data.todos.filter(t=> matchTodo(t,q));
+  if(list.length===0){
+    box.appendChild(el("div",{class:"empty",text: q? "没有匹配的待办" : "还没有待办，上面添加一条"}));
+    return;
+  }
+  const rank = {over:0, today:1, soon:2, none:3, done:4};
+  list.sort((a,b)=>{
+    const ra=rank[dueStatus(a)], rb=rank[dueStatus(b)];
+    if(ra!==rb) return ra-rb;
+    return (b.created||0)-(a.created||0);
+  });
+  let sepShown = false;
+  list.forEach(t=>{
+    const st = dueStatus(t);
+    if(st==="done" && !sepShown){
+      box.appendChild(el("div",{class:"sep",text:"已完成"}));
+      sepShown = true;
+    }
+    const top = el("div",{class:"top"});
+    const left = el("div",{class:"body"+(t.done?"":"")});
+    const cb = el("input",{type:"checkbox"});
+    cb.checked = !!t.done;
+    cb.style.flex = "0 0 auto";
+    cb.style.marginTop = "4px";
+    cb.onclick = ()=>{ t.done = cb.checked; save(); renderTodos(); };
+    const txt = el("span",{class:"body"+(t.done?" done":""), text: esc(t.text)});
+    const txtWrap = el("div",{style:"flex:1; padding-left:8px;"});
+    txtWrap.appendChild(txt);
+    top.appendChild(cb); top.appendChild(txtWrap);
+
+    const meta = el("div",{class:"meta"});
+    if(t.due){
+      let bcls="soon", blab="截止 "+t.due;
+      if(st==="over"){ bcls="over"; blab="已逾期 "+t.due; }
+      else if(st==="today"){ bcls="today"; blab="今天到期 "+t.due; }
+      meta.appendChild(el("span",{class:"badge "+bcls, text:blab}));
+    }
+    meta.appendChild(el("span",{class:"badge "+(t.prio==="high"?"high":"normal"),
+      text: t.prio==="high"?"重要":"普通"}));
+
+    const ops = el("span",{style:"margin-left:auto; display:flex; gap:6px;"});
+    const eb = el("button",{class:"ghost sm", text:"编辑"});
+    eb.onclick = ()=> startEditTodo(t);
+    const db = el("button",{class:"danger sm", text:"删除"});
+    db.onclick = ()=>{ if(confirm("确定删除这条待办？")){ data.todos=data.todos.filter(x=>x.id!==t.id); save(); renderTodos(); } };
+    ops.appendChild(eb); ops.appendChild(db);
+    meta.appendChild(ops);
+
+    const item = el("div",{class:"item"+(t.done?" done":"")}, [top, meta]);
+    box.appendChild(item);
+  });
+}
+
+function renderIdeaChips(){
+  const box = document.getElementById("ideaChips");
+  box.innerHTML = "";
+  const tags = [];
+  data.ideas.forEach(i=> (i.tags||[]).forEach(t=>{ if(t && tags.indexOf(t)<0) tags.push(t); }));
+  box.appendChild(el("span",{class:"chip"+(ideaFilterTag==null?" active":""), text:"全部"}, ));
+  const all = box.lastChild;
+  all.onclick = ()=>{ ideaFilterTag=null; renderIdeaChips(); renderIdeas(); };
+  tags.forEach(t=>{
+    const c = el("span",{class:"chip"+(ideaFilterTag===t?" active":""), text:t});
+    c.onclick = ()=>{ ideaFilterTag = (ideaFilterTag===t?null:t); renderIdeaChips(); renderIdeas(); };
+    box.appendChild(c);
+  });
+}
+
+function renderIdeas(){
+  const box = document.getElementById("ideaList");
+  box.innerHTML = "";
+  const q = currentQuery();
+  let list = data.ideas.filter(i=> matchIdea(i,q));
+  if(ideaFilterTag) list = list.filter(i=> (i.tags||[]).indexOf(ideaFilterTag)>=0);
+  if(list.length===0){
+    box.appendChild(el("div",{class:"empty", text: (q||ideaFilterTag)? "没有匹配的灵感" : "还没有灵感，上面记一条"}));
+    return;
+  }
+  list.sort((a,b)=> (b.created||0)-(a.created||0));
+  list.forEach(i=>{
+    const top = el("div",{class:"top"});
+    top.appendChild(el("div",{class:"body", text: esc(i.text)}));
+    const ops = el("span",{style:"margin-left:auto; display:flex; gap:6px; flex:0 0 auto;"});
+    const eb = el("button",{class:"ghost sm", text:"编辑"});
+    eb.onclick = ()=> startEditIdea(i);
+    const db = el("button",{class:"danger sm", text:"删除"});
+    db.onclick = ()=>{ if(confirm("确定删除这条灵感？")){ data.ideas=data.ideas.filter(x=>x.id!==i.id); save(); renderIdeaChips(); renderIdeas(); } };
+    ops.appendChild(eb); ops.appendChild(db);
+    top.appendChild(ops);
+    const item = el("div",{class:"item"}, [top]);
+    if(i.tags && i.tags.length){
+      const tg = el("div",{class:"tags"});
+      i.tags.forEach(t=> tg.appendChild(el("span",{class:"tag", text:t})));
+      item.appendChild(tg);
+    }
+    box.appendChild(item);
+  });
+}
+
+function renderNotes(){
+  const box = document.getElementById("noteList");
+  box.innerHTML = "";
+  const q = currentQuery();
+  let list = data.notes.filter(n=> matchNote(n,q));
+  if(list.length===0){
+    box.appendChild(el("div",{class:"empty", text: q? "没有匹配的笔记" : "还没有笔记，上面写一条"}));
+    return;
+  }
+  list.sort((a,b)=> (b.created||0)-(a.created||0));
+  list.forEach(n=>{
+    const top = el("div",{class:"top"});
+    const head = el("div",{style:"flex:1;"});
+    head.appendChild(el("div",{class:"body", style:"font-weight:600;", text: esc(n.title)}));
+    if(n.topic) head.appendChild(el("div",{class:"meta", text:"主题："+esc(n.topic)}));
+    top.appendChild(head);
+    const ops = el("span",{style:"margin-left:auto; display:flex; gap:6px; flex:0 0 auto;"});
+    const eb = el("button",{class:"ghost sm", text:"编辑"});
+    eb.onclick = ()=> startEditNote(n);
+    const db = el("button",{class:"danger sm", text:"删除"});
+    db.onclick = ()=>{ if(confirm("确定删除这条笔记？")){ data.notes=data.notes.filter(x=>x.id!==n.id); save(); renderNotes(); } };
+    ops.appendChild(eb); ops.appendChild(db);
+    top.appendChild(ops);
+    const item = el("div",{class:"item"}, [top]);
+    item.appendChild(el("div",{class:"body", text: esc(n.body)}));
+    box.appendChild(item);
+  });
+}
+
+function currentQuery(){ return document.getElementById("search").value.trim().toLowerCase(); }
+function matchTodo(t,q){ if(!q) return true; return (t.text||"").toLowerCase().indexOf(q)>=0; }
+function matchIdea(i,q){ if(!q) return true; const s=(i.text||"")+" "+(i.tags||[]).join(" "); return s.toLowerCase().indexOf(q)>=0; }
+function matchNote(n,q){ if(!q) return true; const s=(n.title||"")+" "+(n.topic||"")+" "+(n.body||""); return s.toLowerCase().indexOf(q)>=0; }
+
+function renderAll(){ renderTodos(); renderIdeaChips(); renderIdeas(); renderNotes(); }
+
+// 待办表单
+document.getElementById("todoForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const text = document.getElementById("todoText").value.trim();
+  if(!text) return;
+  const due = document.getElementById("todoDue").value;
+  const prio = document.getElementById("todoPrio").value;
+  if(editing.todo){
+    editing.todo.text=text; editing.todo.due=due; editing.todo.prio=prio;
+    editing.todo=null;
+  }else{
+    data.todos.push({id:uid(), text, due, prio, done:false, created:Date.now()});
+  }
+  save(); resetTodoForm(); renderTodos();
+});
+function startEditTodo(t){
+  editing.todo=t;
+  document.getElementById("todoText").value=t.text;
+  document.getElementById("todoDue").value=t.due||"";
+  document.getElementById("todoPrio").value=t.prio||"normal";
+  document.getElementById("todoSubmit").textContent="保存修改";
+  document.getElementById("todoCancel").style.display="";
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function resetTodoForm(){
+  document.getElementById("todoForm").reset();
+  document.getElementById("todoSubmit").textContent="添加待办";
+  document.getElementById("todoCancel").style.display="none";
+}
+document.getElementById("todoCancel").onclick=()=>{ editing.todo=null; resetTodoForm(); };
+
+// 灵感表单
+document.getElementById("ideaForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const text = document.getElementById("ideaText").value.trim();
+  if(!text) return;
+  const raw = document.getElementById("ideaTags").value.trim();
+  const tags = raw? raw.split(/[\s,，]+/).filter(Boolean) : [];
+  if(editing.idea){
+    editing.idea.text=text; editing.idea.tags=tags;
+    editing.idea=null;
+  }else{
+    data.ideas.push({id:uid(), text, tags, created:Date.now()});
+  }
+  save(); resetIdeaForm(); renderIdeaChips(); renderIdeas();
+});
+function startEditIdea(i){
+  editing.idea=i;
+  document.getElementById("ideaText").value=i.text;
+  document.getElementById("ideaTags").value=(i.tags||[]).join(" ");
+  document.getElementById("ideaSubmit").textContent="保存修改";
+  document.getElementById("ideaCancel").style.display="";
+  window.scrollTo({top:document.getElementById("ideaForm").offsetTop-80,behavior:"smooth"});
+}
+function resetIdeaForm(){
+  document.getElementById("ideaForm").reset();
+  document.getElementById("ideaSubmit").textContent="添加灵感";
+  document.getElementById("ideaCancel").style.display="none";
+}
+document.getElementById("ideaCancel").onclick=()=>{ editing.idea=null; resetIdeaForm(); };
+
+// 笔记表单
+document.getElementById("noteForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const title = document.getElementById("noteTitle").value.trim();
+  if(!title) return;
+  const topic = document.getElementById("noteTopic").value.trim();
+  const body = document.getElementById("noteBody").value.trim();
+  if(editing.note){
+    editing.note.title=title; editing.note.topic=topic; editing.note.body=body;
+    editing.note=null;
+  }else{
+    data.notes.push({id:uid(), title, topic, body, created:Date.now()});
+  }
+  save(); resetNoteForm(); renderNotes();
+});
+function startEditNote(n){
+  editing.note=n;
+  document.getElementById("noteTitle").value=n.title;
+  document.getElementById("noteTopic").value=n.topic||"";
+  document.getElementById("noteBody").value=n.body||"";
+  document.getElementById("noteSubmit").textContent="保存修改";
+  document.getElementById("noteCancel").style.display="";
+  window.scrollTo({top:document.getElementById("noteForm").offsetTop-80,behavior:"smooth"});
+}
+function resetNoteForm(){
+  document.getElementById("noteForm").reset();
+  document.getElementById("noteSubmit").textContent="添加笔记";
+  document.getElementById("noteCancel").style.display="none";
+}
+document.getElementById("noteCancel").onclick=()=>{ editing.note=null; resetNoteForm(); };
+
+// 搜索
+document.getElementById("search").addEventListener("input", renderAll);
+
+// 导出
+document.getElementById("btnExport").onclick=()=>{
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "工作台数据_"+todayStr()+".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  alert("已导出数据文件，请妥善保存。换电脑时把它导入即可。");
+};
+
+// 导入
+document.getElementById("btnImport").onclick=()=> document.getElementById("fileInput").click();
+document.getElementById("fileInput").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const imp = JSON.parse(ev.target.result);
+      if(!imp || typeof imp!=="object") throw new Error("格式不对");
+      data.todos = mergeArr(data.todos, imp.todos);
+      data.ideas = mergeArr(data.ideas, imp.ideas);
+      data.notes = mergeArr(data.notes, imp.notes);
+      save(); ideaFilterTag=null; renderAll();
+      alert("导入成功，内容已合并到当前工作台。");
+    }catch(err){
+      alert("文件格式不对，导入失败。请确认是导出的数据文件。");
+    }
+    e.target.value="";
+  };
+  reader.readAsText(file);
+});
+function mergeArr(existing, incoming){
+  existing = Array.isArray(existing)?existing:[];
+  incoming = Array.isArray(incoming)?incoming:[];
+  const map = {};
+  existing.forEach(it=>{ if(it && it.id) map[it.id]=it; });
+  incoming.forEach(it=>{ if(it && it.id) map[it.id]=it; }); // 导入覆盖同名
+  return Object.keys(map).map(k=>map[k]);
+}
+
+load();
+renderAll();
+</script>
+</body>
+</html>
